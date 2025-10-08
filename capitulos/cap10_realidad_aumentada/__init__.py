@@ -98,13 +98,21 @@ def run():
     images_to_test.insert(0, ("Marcador Generado", marker_bgr))
 
     # === CONFIGURAR DETECTOR ===
+    params = None
     try:
         if hasattr(cv2.aruco, "DetectorParameters"):
             params = cv2.aruco.DetectorParameters()
         elif hasattr(cv2.aruco, "DetectorParameters_create"):
             params = cv2.aruco.DetectorParameters_create()
-        else:
-            params = None
+        
+        # Ajustar parámetros para mejor detección
+        if params is not None:
+            if hasattr(params, 'adaptiveThreshConstant'):
+                params.adaptiveThreshConstant = 7
+            if hasattr(params, 'minMarkerPerimeterRate'):
+                params.minMarkerPerimeterRate = 0.03
+            if hasattr(params, 'maxMarkerPerimeterRate'):
+                params.maxMarkerPerimeterRate = 4.0
     except Exception:
         params = None
 
@@ -114,13 +122,20 @@ def run():
     
     detected_count = 0
     for label, img_bgr in images_to_test:
+        # Asegurar que la imagen tenga el tamaño adecuado
+        h, w = img_bgr.shape[:2]
+        
+        # Convertir a escala de grises
         gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+        
+        # Aplicar un ligero blur para reducir ruido (opcional)
+        gray = cv2.GaussianBlur(gray, (5, 5), 0)
 
         corners, ids, rejected = None, None, None
         try:
             # OpenCV 4.7+ usa ArucoDetector
             if hasattr(cv2.aruco, "ArucoDetector"):
-                detector = cv2.aruco.ArucoDetector(aruco_dict, params)
+                detector = cv2.aruco.ArucoDetector(aruco_dict, params if params else cv2.aruco.DetectorParameters())
                 corners, ids, rejected = detector.detectMarkers(gray)
             # OpenCV 4.0-4.6 usa detectMarkers
             else:
