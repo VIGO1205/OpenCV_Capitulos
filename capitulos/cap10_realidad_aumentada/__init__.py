@@ -1,235 +1,211 @@
-import streamlit as st
 import cv2
 import numpy as np
-import io
-from utils.common import load_image
 
-def _to_png_bytes(img_bgr):
-    """Convierte imagen BGR a bytes PNG para descarga"""
-    is_success, buffer = cv2.imencode(".png", img_bgr)
-    return io.BytesIO(buffer.tobytes()) if is_success else None
-
-def run():
-    st.markdown("### 🌟 Generación y Detección de Marcadores ArUco")
-    st.markdown("Genera un marcador ArUco y detecta su posición automáticamente.")
-
-    # === ESTILO PERSONALIZADO ===
-    st.markdown("""
-        <style>
-        .custom-uploader div[data-testid="stFileUploader"] {
-            background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
-            border: 2px dashed #8b7ce6;
-            padding: 1rem;
-            border-radius: 10px;
-            transition: all 0.3s ease;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-    # === CONTROLES ===
-    col_gen, col_opts = st.columns([1.4, 1])
-    with col_gen:
-        marker_id = st.number_input("ID del marcador (0..49)", min_value=0, max_value=49, value=0, step=1)
-        marker_size_px = st.slider("Tamaño (px)", 100, 800, 400, step=50)
-        generar = st.button("🚀 Generar y Detectar Marcador", use_container_width=True)
-
-    with col_opts:
-        use_uploaded = st.checkbox("Probar con imagen subida", value=False)
-        if use_uploaded:
-            st.markdown('<div class="custom-uploader">', unsafe_allow_html=True)
-            uploaded_file = st.file_uploader(
-                "Selecciona una imagen con marcador ArUco", 
-                type=["jpg", "jpeg", "png"], 
-                key="cap10_upload"
-            )
-            st.markdown('</div>', unsafe_allow_html=True)
-        else:
-            uploaded_file = None
-
-    if not generar:
-        st.info("👆 Presiona **Generar y Detectar Marcador** para comenzar.")
-        return
-
-    # === GENERAR MARCADOR ===
-    try:
-        aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
-        marker_img = cv2.aruco.generateImageMarker(aruco_dict, int(marker_id), int(marker_size_px))
+class ARTracker:
+    def __init__(self):
+        self.reference_image = None
+        self.reference_kp = None
+        self.reference_desc = None
         
-        st.markdown("#### 🆕 Marcador Generado")
-        col1, col2 = st.columns([1, 2])
-        with col1:
-            st.image(marker_img, caption=f"Marcador ID: {marker_id}", width=300)
-        with col2:
-            st.info(f"""
-            **Información del marcador:**
-            - **ID**: {marker_id}
-            - **Tamaño**: {marker_size_px}x{marker_size_px} px
-            - **Diccionario**: DICT_4X4_50
-            - **Total IDs disponibles**: 0-49
-            """)
-            
-            # Botón de descarga del marcador
-            marker_png = _to_png_bytes(marker_img)
-            if marker_png:
-                st.download_button(
-                    "📥 Descargar Marcador",
-                    marker_png,
-                    f"aruco_marker_{marker_id}.png",
-                    mime="image/png"
-                )
-    except Exception as e:
-        st.error(f"❌ Error generando marcador: {e}")
-        return
-
-    # === PREPARAR IMÁGENES PARA DETECCIÓN ===
-    images_to_test = []
+        # Detector ORB
+        self.detector = cv2.ORB_create(nfeatures=1000)
+        
+        # Matcher FLANN
+        FLANN_INDEX_LSH = 6
+        index_params = dict(algorithm=FLANN_INDEX_LSH,
+                           table_number=6,
+                           key_size=12,
+                           multi_probe_level=1)
+        search_params = dict(checks=50)
+        self.matcher = cv2.FlannBasedMatcher(index_params, search_params)
+        
+        self.min_matches = 10
     
-    # Agregar imagen subida si existe
-    if use_uploaded and uploaded_file:
-        try:
-            img_uploaded = load_image(uploaded_file)
-            img_bgr = cv2.cvtColor(img_uploaded, cv2.COLOR_RGB2BGR)
-            images_to_test.append(("Imagen Subida", img_bgr))
-        except Exception as e:
-            st.warning(f"⚠️ No se pudo leer la imagen subida: {e}")
-
-    # Agregar imagen generada (siempre se prueba)
-    marker_bgr = cv2.cvtColor(marker_img, cv2.COLOR_GRAY2BGR)
-    images_to_test.insert(0, ("Marcador Generado", marker_bgr))
-
-    # === CONFIGURAR DETECTOR ===
-    params = None
-    try:
-        if hasattr(cv2.aruco, "DetectorParameters"):
-            params = cv2.aruco.DetectorParameters()
-        elif hasattr(cv2.aruco, "DetectorParameters_create"):
-            params = cv2.aruco.DetectorParameters_create()
+    def set_reference(self, image):
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if len(image.shape) == 3 else image
+        self.reference_image = image.copy()
+        self.reference_kp, self.reference_desc = self.detector.detectAndCompute(gray, None)
         
-        # Ajustar parámetros para mejor detección
-        if params is not None:
-            if hasattr(params, 'adaptiveThreshConstant'):
-                params.adaptiveThreshConstant = 7
-            if hasattr(params, 'minMarkerPerimeterRate'):
-                params.minMarkerPerimeterRate = 0.03
-            if hasattr(params, 'maxMarkerPerimeterRate'):
-                params.maxMarkerPerimeterRate = 4.0
-    except Exception:
-        params = None
-
-    # === DETECCIÓN DE MARCADORES ===
-    st.markdown("---")
-    st.markdown("#### 🔍 Resultados de Detección")
+        if self.reference_desc is None:
+            return False
+        return True
     
-    detected_count = 0
-    for label, img_bgr in images_to_test:
-        # Asegurar que la imagen tenga el tamaño adecuado
-        h, w = img_bgr.shape[:2]
+    def track(self, frame):
+        if self.reference_desc is None:
+            return None, None
         
-        # Convertir a escala de grises
-        gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) if len(frame.shape) == 3 else frame
+        kp, desc = self.detector.detectAndCompute(gray, None)
         
-        # Aplicar un ligero blur para reducir ruido (opcional)
-        gray = cv2.GaussianBlur(gray, (5, 5), 0)
-
-        corners, ids, rejected = None, None, None
+        if desc is None or len(kp) < self.min_matches:
+            return None, None
+        
         try:
-            # OpenCV 4.7+ usa ArucoDetector
-            if hasattr(cv2.aruco, "ArucoDetector"):
-                detector = cv2.aruco.ArucoDetector(aruco_dict, params if params else cv2.aruco.DetectorParameters())
-                corners, ids, rejected = detector.detectMarkers(gray)
-            # OpenCV 4.0-4.6 usa detectMarkers
+            matches = self.matcher.knnMatch(self.reference_desc, desc, k=2)
+        except:
+            return None, None
+        
+        # Filtrar buenos matches
+        good = []
+        for m_n in matches:
+            if len(m_n) == 2:
+                m, n = m_n
+                if m.distance < 0.7 * n.distance:
+                    good.append(m)
+        
+        if len(good) < self.min_matches:
+            return None, None
+        
+        # Puntos para homografía
+        src_pts = np.float32([self.reference_kp[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
+        dst_pts = np.float32([kp[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
+        
+        H, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
+        
+        if H is None:
+            return None, None
+        
+        # Calcular esquinas del objeto
+        h, w = self.reference_image.shape[:2]
+        corners = np.float32([[0, 0], [w, 0], [w, h], [0, h]]).reshape(-1, 1, 2)
+        transformed = cv2.perspectiveTransform(corners, H)
+        
+        return transformed, H
+    
+    def overlay_pyramid(self, frame, corners, H):
+        if corners is None or H is None:
+            return frame
+        
+        # Obtener dimensiones de la referencia
+        h, w = self.reference_image.shape[:2]
+        
+        # Vértices del cubo 3D (en coordenadas de la imagen de referencia)
+        # Base: 4 esquinas en z=0
+        # Top: 1 punto central en z=altura
+        pyramid_3d = np.float32([
+            [0, 0, 0], [w, 0, 0], [w, h, 0], [0, h, 0],  # Base
+            [w/2, h/2, -h*0.8]  # Punta (altura negativa para que se vea arriba)
+        ]).reshape(-1, 1, 3)
+        
+        # Proyectar puntos 3D a 2D usando la homografía
+        # Aproximación simple: ignorar z para la transformación
+        pyramid_2d = []
+        for pt in pyramid_3d:
+            pt_2d = np.float32([[pt[0][0], pt[0][1]]]).reshape(-1, 1, 2)
+            # Para el punto elevado, ajustar manualmente
+            if pt[0][2] != 0:  # Es la punta
+                transformed = cv2.perspectiveTransform(pt_2d, H)
+                # Mover hacia arriba según la altura
+                offset_y = int(h * 0.5)
+                transformed[0][0][1] -= offset_y
+                pyramid_2d.append(transformed[0][0])
             else:
-                corners, ids, rejected = cv2.aruco.detectMarkers(gray, aruco_dict, parameters=params)
-        except Exception as e:
-            st.error(f"❌ Error en detección de {label}: {e}")
-            continue
-
-        # Verificar si se detectó algo
-        if ids is None or len(ids) == 0:
-            st.warning(f"⚠️ No se detectaron marcadores en: **{label}**")
-            if rejected is not None and len(rejected) > 0:
-                st.info(f"Se encontraron {len(rejected)} candidatos rechazados. Intenta mejorar la iluminación o el enfoque.")
-            continue
-
-        # Se detectó al menos un marcador
-        detected_count += 1
-        detected_ids = ids.flatten().tolist()
-        st.success(f"✅ **{label}**: Detectados {len(detected_ids)} marcador(es) con ID(s): {detected_ids}")
+                transformed = cv2.perspectiveTransform(pt_2d, H)
+                pyramid_2d.append(transformed[0][0])
         
-        # Dibujar marcadores detectados
-        output = img_bgr.copy()
-        cv2.aruco.drawDetectedMarkers(output, corners, ids)
+        pyramid_2d = np.array(pyramid_2d, dtype=np.int32)
+        
+        # Dibujar la pirámide
+        # Base (semitransparente)
+        overlay = frame.copy()
+        cv2.fillPoly(overlay, [pyramid_2d[:4]], (0, 255, 0))
+        cv2.addWeighted(overlay, 0.3, frame, 0.7, 0, frame)
+        
+        # Bordes de la base
+        cv2.polylines(frame, [pyramid_2d[:4]], True, (0, 255, 0), 2)
+        
+        # Líneas desde las esquinas a la punta
+        for i in range(4):
+            cv2.line(frame, tuple(pyramid_2d[i]), tuple(pyramid_2d[4]), (0, 0, 255), 2)
+        
+        return frame
 
-        # Dibujar caja 3D simple sobre cada marcador
-        for i, corner in enumerate(corners):
-            pts = corner[0].astype(int)
+
+def main():
+    print("=== Realidad Aumentada - Tracking de Objetos ===\n")
+    print("Controles:")
+    print("  'r' - Capturar objeto de referencia")
+    print("  'c' - Limpiar tracking")
+    print("  ESC - Salir\n")
+    
+    cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        print("Error: No se pudo abrir la cámara")
+        return
+    
+    tracker = ARTracker()
+    selecting = False
+    start_pt = None
+    end_pt = None
+    
+    def mouse_callback(event, x, y, flags, param):
+        nonlocal selecting, start_pt, end_pt
+        
+        if event == cv2.EVENT_LBUTTONDOWN:
+            selecting = True
+            start_pt = (x, y)
+            end_pt = (x, y)
+        elif event == cv2.EVENT_MOUSEMOVE and selecting:
+            end_pt = (x, y)
+        elif event == cv2.EVENT_LBUTTONUP:
+            selecting = False
+            end_pt = (x, y)
+    
+    cv2.namedWindow('AR Tracker')
+    cv2.setMouseCallback('AR Tracker', mouse_callback)
+    
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        
+        frame = cv2.resize(frame, None, fx=0.6, fy=0.6)
+        display = frame.copy()
+        
+        # Tracking activo
+        if tracker.reference_image is not None:
+            corners, H = tracker.track(frame)
             
-            # Calcular offset para la "altura" de la caja
-            box_height = int(np.linalg.norm(pts[0] - pts[1]) * 0.3)
-            offset = np.array([[0, -box_height]] * 4)
-            top_pts = pts + offset
-            
-            # Base de la caja (verde)
-            cv2.polylines(output, [pts], True, (0, 255, 0), 3)
-            # Techo de la caja (azul)
-            cv2.polylines(output, [top_pts], True, (255, 0, 0), 3)
-            # Columnas verticales (rojo)
-            for p1, p2 in zip(pts, top_pts):
-                cv2.line(output, tuple(p1), tuple(p2), (0, 0, 255), 2)
-            
-            # Etiqueta con el ID
-            center = tuple(pts.mean(axis=0).astype(int))
-            cv2.putText(output, f"ID:{detected_ids[i]}", 
-                       (center[0]-30, center[1]), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
+            if corners is not None:
+                display = tracker.overlay_pyramid(display, corners, H)
+                cv2.putText(display, "Tracking OK", (10, 30), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+            else:
+                cv2.putText(display, "Buscando...", (10, 30), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+        
+        # Mostrar selección
+        if selecting and start_pt and end_pt:
+            cv2.rectangle(display, start_pt, end_pt, (255, 255, 0), 2)
+        
+        cv2.imshow('AR Tracker', display)
+        
+        key = cv2.waitKey(1) & 0xFF
+        
+        if key == 27:  # ESC
+            break
+        elif key == ord('r'):
+            if start_pt and end_pt and not selecting:
+                x1 = min(start_pt[0], end_pt[0])
+                y1 = min(start_pt[1], end_pt[1])
+                x2 = max(start_pt[0], end_pt[0])
+                y2 = max(start_pt[1], end_pt[1])
+                
+                if x2 - x1 > 50 and y2 - y1 > 50:
+                    roi = frame[y1:y2, x1:x2]
+                    if tracker.set_reference(roi):
+                        print("Objeto capturado")
+                    else:
+                        print("Error: No se detectaron características")
+        elif key == ord('c'):
+            tracker.reference_image = None
+            tracker.reference_kp = None
+            tracker.reference_desc = None
+            print("Tracking reiniciado")
+    
+    cap.release()
+    cv2.destroyAllWindows()
 
-        # Mostrar resultado
-        output_rgb = cv2.cvtColor(output, cv2.COLOR_BGR2RGB)
-        st.image(output_rgb, caption=f"🎯 Detección en: {label}", use_column_width=True)
-        
-        # Botón de descarga
-        png = _to_png_bytes(output)
-        if png:
-            st.download_button(
-                f"💾 Descargar resultado ({label})",
-                png,
-                f"aruco_detectado_{label.replace(' ', '_').lower()}.png",
-                mime="image/png",
-                key=f"download_{label}"
-            )
 
-    # === RESUMEN FINAL ===
-    if detected_count == 0:
-        st.error("❌ No se detectó ningún marcador en ninguna imagen.")
-        st.info("""
-        **Sugerencias:**
-        - Asegúrate de que el marcador esté bien iluminado
-        - Evita reflejos o sombras fuertes
-        - El marcador debe estar completamente visible
-        - Prueba con la imagen generada primero
-        """)
-    else:
-        st.success(f"🎉 Se detectaron marcadores en {detected_count} imagen(es)")
-        
-    # === INFORMACIÓN ADICIONAL ===
-    with st.expander("ℹ️ Información sobre Marcadores ArUco"):
-        st.markdown("""
-        ### ¿Qué son los marcadores ArUco?
-        
-        Los marcadores ArUco son patrones cuadrados en blanco y negro utilizados para:
-        - **Realidad Aumentada**: Superponer objetos 3D
-        - **Calibración de cámaras**: Estimación de pose
-        - **Robótica**: Navegación y localización
-        - **Tracking**: Seguimiento de objetos en tiempo real
-        
-        ### Características:
-        - Detección rápida y robusta
-        - Identificación única mediante ID
-        - Estimación de pose 3D
-        - Resistente a rotaciones y perspectivas
-        
-        ### Diccionario DICT_4X4_50:
-        - **50 marcadores únicos** (IDs del 0 al 49)
-        - Cuadrícula de **4×4 bits** internos
-        - Ideal para aplicaciones con pocos marcadores
-        """)
+if __name__ == '__main__':
+    main()
