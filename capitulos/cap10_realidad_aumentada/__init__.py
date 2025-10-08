@@ -91,9 +91,9 @@ def run():
                                       cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
             
             col1, col2 = st.columns(2)
-            col1.image(cv2.cvtColor(img, cv2.COLOR_BGR2RGB), use_container_width=True)
+            col1.image(cv2.cvtColor(img, cv2.COLOR_BGR2RGB), width=300)
             col2.image(cv2.cvtColor(img_kp, cv2.COLOR_BGR2RGB), 
-                      caption=f"✅ {len(kp)} características", use_container_width=True)
+                      caption=f"✅ {len(kp)} características", width=300)
         else:
             st.error("❌ Sin características detectadas")
     
@@ -104,8 +104,8 @@ def run():
         return
     
     col1, col2 = st.columns(2)
-    start = col1.button("▶️ Iniciar", use_container_width=True)
-    reset = col2.button("🔄 Reiniciar", use_container_width=True)
+    start = col1.button("▶️ Iniciar", key="start_btn")
+    reset = col2.button("🔄 Reiniciar", key="reset_btn")
     
     if reset:
         st.session_state.ref = None
@@ -134,7 +134,7 @@ def run():
                 )
                 
                 placeholder.image(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), 
-                                use_container_width=True)
+                                channels="RGB")
                 count += 1
         finally:
             cap.release()
