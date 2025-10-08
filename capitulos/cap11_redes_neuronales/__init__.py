@@ -1,6 +1,7 @@
 import streamlit as st
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
 
 def run():
 
@@ -25,7 +26,8 @@ def run():
     model.setActivationFunction(cv2.ml.ANN_MLP_SIGMOID_SYM)
     model.setTrainMethod(cv2.ml.ANN_MLP_BACKPROP)
     model.setTermCriteria((cv2.TERM_CRITERIA_COUNT | cv2.TERM_CRITERIA_EPS, 10000, 1e-6))
-
+    
+    st.markdown("---") 
     if st.button("⚡ Entrenar Red Neuronal (XOR)", use_container_width=True):
         with st.spinner("Entrenando red neuronal..."):
             # Entrenar
@@ -39,10 +41,7 @@ def run():
 
         # === Mostrar tabla de resultados ===
         st.success("✅ Entrenamiento completado")
-
-        st.markdown("---")  # Línea separadora
         st.markdown("### 📊 Resultados de la Red Neuronal")
-
         results = []
         for i, (inp, expected, out) in enumerate(zip(train_data, labels, outputs)):
             binary_output = 1 if out[0] > 0.5 else 0
@@ -68,7 +67,6 @@ def run():
 
         # === Gráfica de activación ===
         st.markdown("### 📈 Visualización de Activación de la Red")
-        import matplotlib.pyplot as plt
 
         x_values = np.linspace(0, 1, 50)
         y_values = np.linspace(0, 1, 50)
