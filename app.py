@@ -21,6 +21,7 @@ def load_custom_css():
         <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
         * { font-family: 'Inter', sans-serif; }
+        
         .main-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             padding: 2rem 3rem;
@@ -30,16 +31,89 @@ def load_custom_css():
             justify-content: space-between;
             box-shadow: 0 10px 25px rgba(0,0,0,0.25);
             margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1.5rem;
         }
-        .header-text h1 { color: white; font-size: 2.4rem; font-weight: 700; margin-bottom: 0.5rem; }
-        .header-text p { color: rgba(255,255,255,0.9); font-size: 1.1rem; margin-bottom: 0; }
-        .header-logo { width: 110px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3)); }
+        
+        .header-text h1 { 
+            color: white; 
+            font-size: 2.4rem; 
+            font-weight: 700; 
+            margin-bottom: 0.5rem; 
+        }
+        
+        .header-text p { 
+            color: rgba(255,255,255,0.9); 
+            font-size: 1.1rem; 
+            margin-bottom: 0; 
+        }
+        
+        .header-logo { 
+            width: 110px; 
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3)); 
+            flex-shrink: 0;
+        }
+        
         .stButton>button {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white; border: none; padding: 0.6rem 2rem;
-            border-radius: 8px; font-weight: 600; transition: all 0.3s ease;
+            color: white; 
+            border: none; 
+            padding: 0.6rem 2rem;
+            border-radius: 8px; 
+            font-weight: 600; 
+            transition: all 0.3s ease;
+            width: 100%;
         }
-        .stButton>button:hover { transform: scale(1.05); box-shadow: 0 8px 20px rgba(102,126,234,0.35); }
+        
+        .stButton>button:hover { 
+            transform: scale(1.05); 
+            box-shadow: 0 8px 20px rgba(102,126,234,0.35); 
+        }
+        
+        /* Responsive para tablets */
+        @media (max-width: 768px) {
+            .main-header {
+                padding: 1.5rem 2rem;
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .header-text h1 {
+                font-size: 1.8rem;
+            }
+            
+            .header-text p {
+                font-size: 1rem;
+            }
+            
+            .header-logo {
+                width: 90px;
+            }
+        }
+        
+        /* Responsive para móviles */
+        @media (max-width: 480px) {
+            .main-header {
+                padding: 1rem 1.5rem;
+            }
+            
+            .header-text h1 {
+                font-size: 1.5rem;
+            }
+            
+            .header-text p {
+                font-size: 0.9rem;
+            }
+            
+            .header-logo {
+                width: 70px;
+            }
+            
+            .stButton>button {
+                padding: 0.5rem 1.5rem;
+                font-size: 0.9rem;
+            }
+        }
         </style>
     """, unsafe_allow_html=True)
 
