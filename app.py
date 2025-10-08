@@ -95,7 +95,7 @@ def show_home():
         <div class="main-header">
             <div class="header-text">
                 <h1>🎨 Proyecto OpenCV con Streamlit</h1>
-                <p>Operaciones más destacadas del libro <b>“OpenCV 3.x with Python By Example”</b></p>
+                <p>Operaciones más destacadas del libro <b>"OpenCV 3.x with Python By Example"</b></p>
             </div>
             <img src="https://upload.wikimedia.org/wikipedia/commons/3/32/OpenCV_Logo_with_text_svg_version.svg" 
                  alt="OpenCV Logo" class="header-logo">
@@ -113,22 +113,21 @@ def show_home():
 def load_chapter(chapter_num):
     chapter_info = CHAPTERS[chapter_num]
 
-    # Header dentro de contenedor con key único
-    with st.container(key=f"header_{chapter_num}"):
-        st.markdown(
-            f"""
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                        padding: 1.2rem; border-radius: 12px; margin-bottom: 2rem;">
-                <h2 style="color: white; margin: 0;">
-                    {chapter_info['icon']} Capítulo {chapter_num}: {chapter_info['title']}
-                </h2>
-                <p style="color: rgba(255,255,255,0.9); margin-top: 0.3rem;">
-                    {chapter_info['desc']}
-                </p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+    # Header del capítulo (sin usar key en container)
+    st.markdown(
+        f"""
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    padding: 1.2rem; border-radius: 12px; margin-bottom: 2rem;">
+            <h2 style="color: white; margin: 0;">
+                {chapter_info['icon']} Capítulo {chapter_num}: {chapter_info['title']}
+            </h2>
+            <p style="color: rgba(255,255,255,0.9); margin-top: 0.3rem;">
+                {chapter_info['desc']}
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
     # Importar y ejecutar capítulo
     try:
