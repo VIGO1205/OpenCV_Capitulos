@@ -58,8 +58,7 @@ def run():
             st.image(
                 st.session_state.current_image,
                 caption="🖼️ Imagen Original",
-                use_container_width=True,
-                output_format="auto"
+                use_column_width=True
             )
             st.success("✅ Imagen cargada correctamente")
         else:
@@ -84,7 +83,7 @@ def run():
             rows, cols = img.shape[:2]
             M = np.float32([[1, 0, tx], [0, 1, ty]])
             result = cv2.warpAffine(img, M, (cols, rows))
-            st.image(result, caption=f"Traslación ({tx}, {ty})", use_container_width=True)
+            st.image(result, caption=f"Traslación ({tx}, {ty})", use_column_width=True)
             download_button(result, "traslacion.png")
 
     # === ROTACIÓN ===
@@ -99,7 +98,7 @@ def run():
             rows, cols = img.shape[:2]
             M = cv2.getRotationMatrix2D((cols/2, rows/2), angle, scale)
             result = cv2.warpAffine(img, M, (cols, rows))
-            st.image(result, caption=f"Rotada {angle}° (escala {scale})", use_container_width=True)
+            st.image(result, caption=f"Rotada {angle}° (escala {scale})", use_column_width=True)
             download_button(result, "rotacion.png")
 
     # === ESCALADO ===
@@ -126,7 +125,7 @@ def run():
                 fx=scale_factor, fy=scale_factor,
                 interpolation=interp_map[interpolation]
             )
-            st.image(result, caption=f"Escalada {scale_factor}x ({interpolation})", use_container_width=True)
+            st.image(result, caption=f"Escalada {scale_factor}x ({interpolation})", use_column_width=True)
             download_button(result, "escalado.png")
 
     # === PERSPECTIVA ===
@@ -151,5 +150,5 @@ def run():
             ])
             M = cv2.getPerspectiveTransform(src_points, dst_points)
             result = cv2.warpPerspective(img, M, (cols, rows))
-            st.image(result, caption="Transformación Perspectiva", use_container_width=True)
+            st.image(result, caption="Transformación Perspectiva", use_column_width=True)
             download_button(result, "perspectiva.png")

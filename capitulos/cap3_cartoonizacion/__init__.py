@@ -51,7 +51,7 @@ def run():
 
     with col2:
         if st.session_state.cap3_img is not None:
-            st.image(st.session_state.cap3_img, caption="🖼️ Imagen Original", use_container_width=True)
+            st.image(st.session_state.cap3_img, caption="🖼️ Imagen Original", use_column_width=True)
             st.success("✅ Imagen cargada correctamente")
         else:
             st.info("👆 Carga una imagen para comenzar")
@@ -93,5 +93,5 @@ def run():
         edges_colored = cv2.cvtColor(edges, cv2.COLOR_GRAY2RGB)
         result = cv2.bitwise_and(img_color, edges_colored)
 
-        st.image(result, caption="🎨 Imagen Cartoonizada", use_container_width=True)
+        st.image(result, caption="🎨 Imagen Cartoonizada", use_column_width=True)
         download_button(result, "cartoonized.png")

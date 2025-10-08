@@ -83,9 +83,9 @@ def run():
             col1, col2 = st.columns(2)
             with col1:
                 stframe1.image(frame_copy, channels="BGR",
-                               caption="🎥 Detección de Movimiento", use_container_width=True)
+                               caption="🎥 Detección de Movimiento", use_column_width=True)
             with col2:
-                stframe2.image(fgMask, caption="🩶 Máscara de Primer Plano", use_container_width=True)
+                stframe2.image(fgMask, caption="🩶 Máscara de Primer Plano", use_column_width=True)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break

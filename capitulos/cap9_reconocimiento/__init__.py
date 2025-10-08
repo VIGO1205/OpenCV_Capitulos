@@ -51,7 +51,7 @@ def run():
     with col2:
         if 'cap9_img' in st.session_state:
             img = st.session_state['cap9_img']
-            st.image(img, caption="🖼️ Imagen Original", use_container_width=True)
+            st.image(img, caption="🖼️ Imagen Original", use_column_width=True)
             st.success("✅ Imagen cargada correctamente")
         else:
             st.info("👆 Carga una imagen para comenzar")
@@ -139,7 +139,7 @@ def run():
 
     st.info("""
     💡 **Explicación:**
-    - Cada punto clave se agrupa en un “cluster” visual (una “palabra visual”).
+    - Cada punto clave se agrupa en un "cluster" visual (una "palabra visual").
     - El histograma muestra la distribución de esas palabras visuales.
     - Esta técnica permite reconocer objetos o comparar imágenes similares.
     """)

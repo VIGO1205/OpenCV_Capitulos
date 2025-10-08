@@ -47,7 +47,7 @@ def run():
     with col2:
         if 'cap7_img' in st.session_state:
             img = st.session_state['cap7_img']
-            st.image(img, caption="🖼️ Imagen Original", use_container_width=True)
+            st.image(img, caption="🖼️ Imagen Original", use_column_width=True)
             st.success("✅ Imagen cargada correctamente")
         else:
             st.info("👆 Carga una imagen para comenzar")
@@ -103,11 +103,11 @@ def run():
     st.info(f"💡 Segmentando color: **{color_preset}**")
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.image(img, caption="Original", use_container_width=True)
+        st.image(img, caption="Original", use_column_width=True)
     with col2:
-        st.image(mask_cleaned, caption="Máscara de Color", use_container_width=True)
+        st.image(mask_cleaned, caption="Máscara de Color", use_column_width=True)
     with col3:
-        st.image(result, caption="Resultado Segmentado", use_container_width=True)
+        st.image(result, caption="Resultado Segmentado", use_column_width=True)
 
     # Métrica de porcentaje
     pixels_segmented = np.count_nonzero(mask_cleaned)

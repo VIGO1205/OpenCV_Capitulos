@@ -1,6 +1,7 @@
 import streamlit as st
 import cv2
 import numpy as np
+import pyplot as plt
 
 def run():
 
@@ -67,7 +68,6 @@ def run():
 
         # === Gráfica de activación ===
         st.markdown("### 📈 Visualización de Activación de la Red")
-        import matplotlib.pyplot as plt
 
         x_values = np.linspace(0, 1, 50)
         y_values = np.linspace(0, 1, 50)

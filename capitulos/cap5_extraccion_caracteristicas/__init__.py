@@ -51,7 +51,7 @@ def run():
 
     with col2:
         if st.session_state.cap5_img is not None:
-            st.image(st.session_state.cap5_img, caption="🖼️ Imagen Original", use_container_width=True)
+            st.image(st.session_state.cap5_img, caption="🖼️ Imagen Original", use_column_width=True)
             st.success("✅ Imagen cargada correctamente")
         else:
             st.info("👆 Carga una imagen para comenzar")
@@ -85,7 +85,7 @@ def run():
         st.image(
             img_with_keypoints,
             caption=f"🔍 {len(keypoints)} puntos clave detectados",
-            use_container_width=True
+            use_column_width=True
         )
         download_button(img_with_keypoints, "orb_keypoints.png")
 

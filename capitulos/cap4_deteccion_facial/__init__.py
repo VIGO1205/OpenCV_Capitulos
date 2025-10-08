@@ -58,7 +58,7 @@ def run():
 
     with col2:
         if st.session_state.cap4_img is not None:
-            st.image(st.session_state.cap4_img, caption="🖼️ Imagen Original", use_container_width=True)
+            st.image(st.session_state.cap4_img, caption="🖼️ Imagen Original", use_column_width=True)
             st.success("✅ Imagen cargada correctamente")
         else:
             st.info("👆 Carga una imagen para comenzar")
@@ -93,7 +93,7 @@ def run():
         st.image(
             img,
             caption=f"👤 {len(faces)} rostro(s) detectado(s)",
-            use_container_width=True
+            use_column_width=True
         )
         download_button(img, "rostros_detectados.png")
 

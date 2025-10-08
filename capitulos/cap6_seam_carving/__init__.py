@@ -47,7 +47,7 @@ def run():
     with col2:
         if 'cap6_img' in st.session_state:
             img = st.session_state['cap6_img']
-            st.image(img, caption="🖼️ Imagen Original", use_container_width=True)
+            st.image(img, caption="🖼️ Imagen Original", use_column_width=True)
             st.success("✅ Imagen cargada correctamente")
         else:
             st.info("👆 Carga una imagen para comenzar")
@@ -72,7 +72,7 @@ def run():
     energy_colored = cv2.applyColorMap(energy_normalized.astype(np.uint8), cv2.COLORMAP_JET)
     energy_colored = cv2.cvtColor(energy_colored, cv2.COLOR_BGR2RGB)
 
-    st.image(energy_colored, caption="🔥 Mapa de Energía (Regiones rojas = más importantes)", use_container_width=True)
+    st.image(energy_colored, caption="🔥 Mapa de Energía (Regiones rojas = más importantes)", use_column_width=True)
 
     st.info("""
     💡 **Explicación:**

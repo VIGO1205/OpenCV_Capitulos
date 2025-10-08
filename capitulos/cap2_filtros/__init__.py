@@ -55,7 +55,7 @@ def run():
             st.image(
                 st.session_state.cap2_img,
                 caption="🖼️ Imagen Original",
-                use_container_width=True
+                use_column_width=True
             )
             st.success("✅ Imagen cargada correctamente")
         else:
@@ -83,6 +83,6 @@ def run():
         st.image(
             result,
             caption=f"Bordes detectados (T1={t1}, T2={t2})",
-            use_container_width=True
+            use_column_width=True
         )
         download_button(result, "canny_edges.png")
